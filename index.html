@@ -4,6 +4,7 @@
     <!-- 
     ============================================================================
     ARQUIVO DE PRODUÇÃO - CONECTADO AO FIREBASE (TR-FIRE-APP)
+    ATUALIZAÇÃO: BACKUP ADMIN (THAWILLYS ROCHA)
     DATA: 13/01/2026
     ============================================================================
     -->
@@ -88,7 +89,7 @@
 
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const { useState, useEffect, useRef, useMemo } = React;
         const { jsPDF } = window.jspdf;
@@ -127,6 +128,7 @@
         const LOGO_SRC = "logo.png"; 
         const FALLBACK_LOGO = "https://cdn-icons-png.flaticon.com/512/785/785116.png";
         const LOCATION_OPTIONS = ["ANJUN", "AZUL CARGO", "AREAS COMUNS", "EQ. RESERVA", "LATAM", "MELI", "POWER SOURCE", "TOTAL EXP."];
+        const ADMIN_USER = "THAWILLYS ROCHA"; // Usuário com permissão de backup
 
         const generateUUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -467,13 +469,18 @@
             );
         };
 
-        const ListScreen = ({ data, onNavigate, onToggleDelete, onImport, currentUser }) => {
+        const ListScreen = ({ data, onNavigate, onToggleDelete, onImportData, currentUser }) => {
             const [showFilter, setShowFilter] = useState(false);
             const [showPdfModal, setShowPdfModal] = useState(false); 
+            const [showBackupModal, setShowBackupModal] = useState(false);
             const [showBin, setShowBin] = useState(false);
             const [filters, setFilters] = useState({ startDate: '', endDate: '', type: '', responsible: '', moduleLocation: '' });
             
+            const fileInputRef = useRef(null);
+            
             const [viewMonth, setViewMonth] = useState(new Date().toISOString().slice(0, 7));
+
+            const isAdmin = currentUser === ADMIN_USER;
 
             const responsibles = useMemo(() => [...new Set(data.map(item => item.responsible).filter(Boolean))], [data]);
 
@@ -512,6 +519,39 @@
             });
 
             const displayList = showBin ? deletedData : activeData;
+
+            const handleExport = () => {
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_trfire_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowBackupModal(false);
+            };
+
+            const handleFileImport = (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const json = JSON.parse(ev.target.result);
+                        onImportData(json);
+                        setShowBackupModal(false);
+                    } catch(err) {
+                        alert("Erro ao ler arquivo JSON. Verifique o formato.");
+                    }
+                };
+                reader.readAsText(file);
+                // Reset input
+                e.target.value = null;
+            };
 
             const generateSpecificPDF = async (type) => {
                 setShowPdfModal(false);
@@ -582,6 +622,15 @@
                                     <button onClick={() => setShowFilter(!showFilter)} title="Filtrar"><i className="fas fa-filter text-xl text-yellow-400"></i></button>
                                     <div className="w-px h-6 bg-gray-600 mx-1"></div>
                                     <button onClick={() => setShowPdfModal(true)} title="Gerar PDF"><i className="fas fa-file-pdf text-xl text-white"></i></button>
+                                    
+                                    {/* BOTÃO DE BACKUP - SOMENTE ADMIN */}
+                                    {isAdmin && (
+                                        <>
+                                            <div className="w-px h-6 bg-gray-600 mx-1"></div>
+                                            <button onClick={() => setShowBackupModal(true)} title="Backup / Restaurar"><i className="fas fa-cloud-upload-alt text-xl text-blue-400"></i></button>
+                                        </>
+                                    )}
+
                                     <div className="w-px h-6 bg-gray-600 mx-1"></div>
                                 </>
                             )}
@@ -600,6 +649,36 @@
                                     <button onClick={() => generateSpecificPDF('EXTINTOR')} className="w-full py-3 bg-brand-red text-white font-bold rounded-xl shadow-md active:scale-95">Relatório de EXTINTORES</button>
                                     <button onClick={() => generateSpecificPDF('HIDRANTE')} className="w-full py-3 bg-brand-orange text-white font-bold rounded-xl shadow-md active:scale-95">Relatório de HIDRANTES</button>
                                     <button onClick={() => setShowPdfModal(false)} className="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl mt-2">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DE BACKUP (SOMENTE ADMIN) */}
+                    {showBackupModal && isAdmin && (
+                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-sm animate-fade-in text-center">
+                                <h3 className="text-lg font-bold mb-4 dark:text-white flex items-center justify-center gap-2"><i className="fas fa-database text-blue-500"></i> Backup & Restauração</h3>
+                                <p className="text-xs text-gray-500 mb-6">Ferramenta exclusiva para {ADMIN_USER}</p>
+                                <div className="space-y-3">
+                                    <button onClick={handleExport} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md active:scale-95 flex items-center justify-center gap-2">
+                                        <i className="fas fa-download"></i> EXPORTAR TUDO
+                                    </button>
+                                    
+                                    <div className="relative">
+                                        <input 
+                                            type="file" 
+                                            ref={fileInputRef}
+                                            onChange={handleFileImport}
+                                            accept=".json"
+                                            className="hidden" 
+                                        />
+                                        <button onClick={() => fileInputRef.current.click()} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-md active:scale-95 flex items-center justify-center gap-2">
+                                            <i className="fas fa-upload"></i> IMPORTAR DADOS
+                                        </button>
+                                    </div>
+                                    
+                                    <button onClick={() => setShowBackupModal(false)} className="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl mt-4">Fechar</button>
                                 </div>
                             </div>
                         </div>
@@ -743,6 +822,37 @@
                 }
             };
 
+            // IMPORTAR DADOS (Restaurar Backup)
+            const handleImportData = async (jsonData) => {
+                if(!dbFirestore) return alert("Erro de conexão com o banco de dados.");
+                if(!Array.isArray(jsonData)) return alert("Arquivo inválido. O formato deve ser uma lista JSON.");
+                
+                if(!confirm(`⚠️ ATENÇÃO: Você está prestes a importar ${jsonData.length} registros.\n\nIsso pode sobrescrever dados existentes se os IDs coincidirem.\nDeseja continuar?`)) return;
+
+                let successCount = 0;
+                let errorCount = 0;
+
+                // Loop simples para processar a importação
+                for (const item of jsonData) {
+                    try {
+                        if (item.id) {
+                            // Se tem ID, usa setDoc para restaurar exatamente aquele documento (atualiza ou cria)
+                            const { id, ...dataToSave } = item;
+                            const docRef = doc(dbFirestore, "inspections", id);
+                            await setDoc(docRef, dataToSave);
+                        } else {
+                            // Se não tem ID, cria um novo
+                            await addDoc(collection(dbFirestore, "inspections"), item);
+                        }
+                        successCount++;
+                    } catch (e) {
+                        console.error("Erro ao importar item:", item, e);
+                        errorCount++;
+                    }
+                }
+                alert(`Importação concluída!\n✅ Sucesso: ${successCount}\n❌ Erros: ${errorCount}`);
+            };
+
             // ATUALIZAR (DELETAR/RESTAURAR) NO FIREBASE
             const handleToggleDelete = async (id, status) => {
                 if(!dbFirestore) return;
@@ -761,7 +871,7 @@
                     {page === 'menu' && <MenuScreen onNavigate={setPage} responsibleName={responsible} onStartInspection={handleStartInspection} />}
                     {page === 'scan' && <ScannerScreen onNavigate={setPage} onScanSuccess={(d)=>{setScanRes(d); setPage('form')}} />}
                     {page === 'form' && <FormScreen initialData={scanRes} onNavigate={setPage} responsibleName={responsible} inspectionType={inspectionType} onSave={handleSave} />}
-                    {page === 'list' && <ListScreen data={db} onNavigate={setPage} onToggleDelete={handleToggleDelete} currentUser={responsible} />}
+                    {page === 'list' && <ListScreen data={db} onNavigate={setPage} onToggleDelete={handleToggleDelete} onImportData={handleImportData} currentUser={responsible} />}
                 </>
             );
         };
