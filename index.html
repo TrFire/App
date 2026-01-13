@@ -11,7 +11,7 @@
     - Filtros por Local e Data
     - Geração de PDF (Extintores e Hidrantes)
     - Painel Admin: Backup e Restauração (Exclusivo: THAWILLYS ROCHA)
-    - Tela Inicial: Textos restaurados e layout ajustado (Versão Beta 1.5)
+    - Tela Inicial: Layout otimizado, status movido (Versão Beta 1.5)
     ============================================================================
     -->
 
@@ -175,20 +175,20 @@
             return (
                 <div className="flex flex-col h-full bg-brand-red p-6 items-center justify-center animate-fade-in relative">
                     
-                    {/* STATUS ONLINE MOVIDO PARA CIMA DA LOGO */}
+                    <div className="w-32 h-32 mb-2 bg-white rounded-full p-4 shadow-2xl flex items-center justify-center">
+                         <LogoImage className="w-full h-full object-contain" />
+                    </div>
+                    
+                    <h1 className="text-white text-3xl font-extrabold tracking-tight mb-1 text-center">TR FIRE <span className="text-brand-orange">INSPEÇÕES</span></h1>
+                    
+                    {/* TEXTO RESTAURADO ABAIXO DO TÍTULO */}
+                    <p className="text-white/80 text-sm mb-4 font-medium">Sistema de Controle de Equipamentos</p>
+
+                    {/* STATUS ONLINE MOVIDO PARA BAIXO DO TEXTO */}
                     <div className="flex items-center gap-2 mb-6 bg-black/20 px-3 py-1 rounded-full">
                         <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
                         <p className="text-white/90 text-xs font-bold">ONLINE</p>
                     </div>
-
-                    <div className="w-40 h-40 mb-4 bg-white rounded-full p-4 shadow-2xl flex items-center justify-center">
-                         <LogoImage className="w-full h-full object-contain" />
-                    </div>
-                    
-                    <h1 className="text-white text-3xl font-extrabold tracking-tight mb-2 text-center">TR FIRE <span className="text-brand-orange">INSPEÇÕES</span></h1>
-                    
-                    {/* TEXTO RESTAURADO ABAIXO DO TÍTULO */}
-                    <p className="text-white/80 text-sm mb-8 font-medium">Sistema de Controle de Equipamentos</p>
                     
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-2xl w-full max-w-sm space-y-6">
                         <div>
