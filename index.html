@@ -3,9 +3,15 @@
 <head>
     <!-- 
     ============================================================================
-    ARQUIVO DE PRODUÇÃO - CONECTADO AO FIREBASE (TR-FIRE-APP)
-    ATUALIZAÇÃO: BACKUP ADMIN (THAWILLYS ROCHA)
-    DATA: 13/01/2026
+    VERSÃO FINAL - AJUSTES DE LAYOUT (13/01/2026)
+    ============================================================================
+    FUNCIONALIDADES:
+    - Banco de Dados em Nuvem (Firebase)
+    - Autenticação de Usuários
+    - Filtros por Local e Data
+    - Geração de PDF (Extintores e Hidrantes)
+    - Painel Admin: Backup e Restauração (Exclusivo: THAWILLYS ROCHA)
+    - Tela Inicial: Textos restaurados e layout ajustado (Versão Beta 1.5)
     ============================================================================
     -->
 
@@ -98,7 +104,6 @@
         // GESTÃO DE CONFIGURAÇÃO DO FIREBASE (FIXA NO CÓDIGO)
         // =========================================================================
         
-        // Configuração inserida diretamente no código para facilitar o uso da equipe
         const hardcodedConfig = {
             apiKey: "AIzaSyCD6T_Fe-maCzrp79k1hfEEyo9iKkqLPEM",
             authDomain: "tr-fire-app-8762c.firebaseapp.com",
@@ -169,15 +174,21 @@
 
             return (
                 <div className="flex flex-col h-full bg-brand-red p-6 items-center justify-center animate-fade-in relative">
+                    
+                    {/* STATUS ONLINE MOVIDO PARA CIMA DA LOGO */}
+                    <div className="flex items-center gap-2 mb-6 bg-black/20 px-3 py-1 rounded-full">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                        <p className="text-white/90 text-xs font-bold">ONLINE</p>
+                    </div>
+
                     <div className="w-40 h-40 mb-4 bg-white rounded-full p-4 shadow-2xl flex items-center justify-center">
                          <LogoImage className="w-full h-full object-contain" />
                     </div>
                     
                     <h1 className="text-white text-3xl font-extrabold tracking-tight mb-2 text-center">TR FIRE <span className="text-brand-orange">INSPEÇÕES</span></h1>
-                    <div className="flex items-center gap-2 mb-8 bg-black/20 px-3 py-1 rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                        <p className="text-white/90 text-xs font-bold">ONLINE</p>
-                    </div>
+                    
+                    {/* TEXTO RESTAURADO ABAIXO DO TÍTULO */}
+                    <p className="text-white/80 text-sm mb-8 font-medium">Sistema de Controle de Equipamentos</p>
                     
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-2xl w-full max-w-sm space-y-6">
                         <div>
@@ -224,7 +235,10 @@
                     <div className="absolute bottom-4 w-full text-center space-y-2">
                         <div className="text-white/90 text-xs text-center mb-1 leading-relaxed font-medium">
                             <p>Copyright © 2026 Fire Personality ME</p>
+                            <p>Todos os direitos reservados</p>
+                            <p>(Thawillys Rocha)</p>
                         </div>
+                        <p className="text-white/40 text-xs">Versão Beta 1.5</p>
                     </div>
                 </div>
             );
