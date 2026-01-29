@@ -3,12 +3,11 @@
 <head>
     <!-- 
     ============================================================================
-    VERSÃO V10.0 (29/01/2026) - TR FIRE: CADASTRO E IDENTIFICAÇÃO DE QR-CODE
+    VERSÃO V10.1 (29/01/2026) - TR FIRE: SUPORTE AO BOTÃO VOLTAR (HISTORY API)
     ============================================================================
     NOVIDADES:
-    - Tela de Cadastro de QR-Code (Vínculo de ID -> Nome/Tipo).
-    - Identificação Automática: Preenchimento do nome ao escanear na inspeção.
-    - Nova Coleção Firestore: 'equipment_registry'.
+    - Integração com History API: O botão voltar do celular agora retrocede telas.
+    - Sincronização de estado entre Navegação e Histórico do Browser.
     ============================================================================
     -->
 
@@ -267,8 +266,7 @@
             );
         };
 
-        // --- OUTRAS TELAS ADMIN (UnitRegister, UserRegister, AccessControl) ---
-        // (Mantidas do código original com pequenas adaptações visuais)
+        // --- OUTRAS TELAS ADMIN ---
         const UnitRegisterScreen = ({ onNavigate, onSaveUnit, unitsList, onUpdateUnit, onDeleteUnit, showAlert, showConfirm }) => {
             const [newUnit, setNewUnit] = useState({ name: '', address: '' });
             const [editingId, setEditingId] = useState(null);
@@ -424,10 +422,7 @@
                 scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (decodedText) => {
                     await scanner.stop();
                     scanner.clear();
-                    
-                    // LÓGICA DE BUSCA AUTOMÁTICA DE VÍNCULO
                     let finalData = { equipmentId: decodedText, equipmentName: decodedText, isLinked: false };
-                    
                     try {
                         const docRef = doc(dbFirestore, "equipment_registry", decodedText);
                         const docSnap = await getDoc(docRef);
@@ -438,8 +433,6 @@
                             finalData.isLinked = true;
                         }
                     } catch (e) { console.error("Erro na busca de QR:", e); }
-
-                    // Validação de Duplicidade no Mês
                     if (inspectionType !== 'RONDA') {
                         const currentMonth = new Date().toISOString().slice(0, 7); 
                         const isDuplicate = db.some(item => !item.deleted && (item.equipmentId || '').toString() === decodedText && item.created_at.startsWith(currentMonth));
@@ -452,7 +445,6 @@
                 }).catch(err => console.error(err));
                 return () => { if (scanner.isScanning) scanner.stop().then(() => scanner.clear()).catch(() => {}); };
             }, [db, inspectionType]);
-
             return (
                 <div className="flex flex-col h-full bg-black relative">
                     <button onClick={() => onNavigate('menu')} className="absolute top-4 left-4 z-20 text-white bg-black/40 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm"><i className="fas fa-arrow-left"></i></button>
@@ -485,7 +477,6 @@
                     </div>
                 ); 
             };
-
             return (
                 <div className="flex flex-col h-full bg-gray-50 dark:bg-black overflow-hidden animate-fade-in">
                     <div className="bg-white dark:bg-gray-900 p-4 shadow-sm flex items-center justify-between sticky top-0 z-20">
@@ -516,9 +507,6 @@
             );
         };
 
-        // --- TELAS RESTANTES (ListScreen, RoundsLocationScreen, RoundsFormScreen) ---
-        // (Seriam mantidas conforme o seu código anterior para manter o histórico e as rondas)
-
         function App() {
             const [page, setPage] = useState(localStorage.getItem('trfire_user') ? 'menu' : 'responsible');
             const [responsible, setResponsible] = useState(localStorage.getItem('trfire_user') || '');
@@ -532,6 +520,37 @@
 
             const showAlert = (message, type = 'info') => setNotification({ isOpen: true, message, type, isConfirmation: false });
             const showConfirm = (message, onConfirm, type = 'warning') => setNotification({ isOpen: true, message, type, isConfirmation: true, onConfirm });
+
+            // =========================================================================
+            // LÓGICA DO BOTÃO VOLTAR (HISTORY API)
+            // =========================================================================
+            useEffect(() => {
+                const handlePopState = (event) => {
+                    if (event.state && event.state.page) {
+                        setPage(event.state.page);
+                    } else if (page !== 'responsible') {
+                        // Se não houver estado no histórico, volta para o menu ou login
+                        const target = localStorage.getItem('trfire_user') ? 'menu' : 'responsible';
+                        if (page !== target) setPage(target);
+                    }
+                };
+
+                window.addEventListener('popstate', handlePopState);
+                
+                // Define o estado inicial se não existir
+                if (!window.history.state) {
+                    window.history.replaceState({ page }, '');
+                }
+
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, []);
+
+            // Sincroniza o histórico sempre que a página mudar manualmente (setPage)
+            useEffect(() => {
+                if (window.history.state?.page !== page) {
+                    window.history.pushState({ page }, '');
+                }
+            }, [page]);
 
             useEffect(() => {
                 if (!dbFirestore) return;
@@ -558,8 +577,7 @@
                     {page === 'accessControl' && <AccessControlScreen onNavigate={setPage} usersList={users} onUpdatePermissions={(id, p)=>updateDoc(doc(dbFirestore, "users", id), {permissions: p})} />}
                     {page === 'scan' && <ScannerScreen onNavigate={setPage} onScanSuccess={(d)=>{setScanRes(d); setPage('form');}} db={db} inspectionType={inspectionType} showAlert={showAlert} />}
                     {page === 'form' && <FormScreen initialData={scanRes} onNavigate={setPage} responsibleName={responsible} inspectionType={inspectionType} onSave={handleSave} showAlert={showAlert} />}
-                    {/* (ListScreen e RoundsLocationScreen seriam incluídos aqui mantendo a lógica do seu ficheiro original) */}
-                    {page === 'list' && <div className="p-10 text-center"><button onClick={()=>setPage('menu')} className="bg-brand-red p-4 text-white rounded-xl">REGISTO SALVO! VOLTAR AO MENU</button></div>}
+                    {page === 'list' && <div className="p-10 text-center flex flex-col items-center justify-center h-full space-y-4"><i className="fas fa-check-circle text-green-500 text-6xl animate-bounce"></i><h2 className="text-xl font-bold">REGISTRO SALVO!</h2><button onClick={()=>setPage('menu')} className="bg-brand-red p-4 text-white rounded-xl font-bold w-full max-w-xs shadow-lg uppercase">Voltar ao Menu</button></div>}
                 </div>
             );
         }
